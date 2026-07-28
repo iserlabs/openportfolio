@@ -19,4 +19,18 @@ export const env = {
   get OAUTH_JWK() { return req("OAUTH_JWK"); },
   /** Optional: backup export location. Unset means backups are disabled, not an error. */
   get BACKUP_DIR() { return process.env.BACKUP_DIR; },
+  /**
+   * E2E/dev-only escape hatch (Task A13): when set, `getOAuthClient()` also
+   * resolves identities against a LOCAL dev-env network instead of the real
+   * internet (this instance's own `PDS_URL` doubles as the XRPC handle
+   * resolver -- both the owner and every other test account live on that
+   * same dev-env PDS -- and this value becomes the PLC directory URL), and
+   * tolerates http endpoints throughout. Exists solely so a Playwright
+   * harness can drive real ATProto OAuth against `@atproto/dev-env`'s
+   * `TestNetworkNoAppView`, whose fake `.test` handles and locally-issued
+   * `did:plc:*`s don't resolve against the real plc.directory/DNS. Unset
+   * (the default) in every real deployment -- production handle/DID
+   * resolution always uses the library's real defaults.
+   */
+  get OAUTH_PLC_URL() { return process.env.OAUTH_PLC_URL; },
 };

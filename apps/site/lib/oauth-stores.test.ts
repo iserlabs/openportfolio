@@ -199,7 +199,11 @@ describe("clientMetadata", () => {
     expect(metadata.jwks_uri).toBe("https://portfolio.example.com/oauth/jwks.json");
     expect(metadata.dpop_bound_access_tokens).toBe(true);
     expect(metadata.client_id).toBe("https://portfolio.example.com/oauth/client-metadata.json");
-    expect(metadata.scope).toBe("atproto");
+    // "transition:generic" (Task A13 finding): the bare "atproto" scope only
+    // establishes identity under @atproto/oauth-scopes' granular permission
+    // model -- a session without it gets ScopeMissingError on the very first
+    // uploadBlob/createRecord call. See clientMetadata()'s own doc comment.
+    expect(metadata.scope).toBe("atproto transition:generic");
   });
 });
 
@@ -233,5 +237,20 @@ describe("confidential client (real ES256 keyset)", () => {
     expect(publicJwk.crv).toBe("P-256");
     // The private "d" component must never be serialized to this public route.
     expect(publicJwk.d).toBeUndefined();
+  });
+
+  // Task A13's dev-only escape hatch: when OAUTH_PLC_URL is set, getOAuthClient()
+  // still builds a working client (just wired at a local dev-env network instead
+  // of the real internet) rather than throwing.
+  it("getOAuthClient() still builds when OAUTH_PLC_URL is set (dev/E2E identity-resolution override)", async () => {
+    process.env.PDS_URL = "http://localhost:9999";
+    process.env.OAUTH_PLC_URL = "http://localhost:9998";
+    try {
+      const client = await getOAuthClient();
+      expect(typeof client.authorize).toBe("function");
+    } finally {
+      delete process.env.PDS_URL;
+      delete process.env.OAUTH_PLC_URL;
+    }
   });
 });

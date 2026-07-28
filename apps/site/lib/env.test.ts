@@ -17,6 +17,7 @@ describe("env", () => {
   afterEach(() => {
     for (const k of REQUIRED_KEYS) delete process.env[k];
     delete process.env.BACKUP_DIR;
+    delete process.env.OAUTH_PLC_URL;
   });
 
   it("does not read process.env at import time (build must succeed with zero env vars set)", async () => {
@@ -45,5 +46,17 @@ describe("env", () => {
     const { env } = await import("./env.js");
     process.env.BACKUP_DIR = "/var/backups/open-portfolio";
     expect(env.BACKUP_DIR).toBe("/var/backups/open-portfolio");
+  });
+
+  it("OAUTH_PLC_URL: returns undefined without throwing when unset (the production default)", async () => {
+    const { env } = await import("./env.js");
+    delete process.env.OAUTH_PLC_URL;
+    expect(env.OAUTH_PLC_URL).toBeUndefined();
+  });
+
+  it("OAUTH_PLC_URL: returns the value once set", async () => {
+    const { env } = await import("./env.js");
+    process.env.OAUTH_PLC_URL = "http://localhost:1234";
+    expect(env.OAUTH_PLC_URL).toBe("http://localhost:1234");
   });
 });

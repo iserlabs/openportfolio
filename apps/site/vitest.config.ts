@@ -12,9 +12,11 @@ export default defineConfig({
     environment: "node",
     // The default include glob (**/*.{test,spec}.*) would otherwise sweep up
     // the dev-env integration suite (integration/**/*.test.ts -- slow, boots
-    // a real PDS, run via `test:integration`). It has its own config/script
-    // and must stay out of `pnpm test`. Mirrors Luminance's
-    // apps/web/vitest.config.ts split.
-    exclude: [...configDefaults.exclude, "integration/**"],
+    // a real PDS, run via `test:integration`) and the Playwright E2E suite
+    // (e2e/**/*.spec.ts -- imports `@playwright/test`, boots a real dev-env
+    // network *and* a real browser, run via `test:e2e`; see e2e/global-
+    // setup.ts). Both have their own config/script and must stay out of
+    // `pnpm test`. Mirrors Luminance's apps/web/vitest.config.ts split.
+    exclude: [...configDefaults.exclude, "integration/**", "e2e/**"],
   },
 });

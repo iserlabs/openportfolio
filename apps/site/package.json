@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@atproto/api": "^0.20.34",
@@ -27,14 +28,18 @@
   "devDependencies": {
     "@atproto/dev-env": "^0.5.39",
     "@atproto/repo": "^0.10.6",
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "get-port": "^7.2.0",
     "jose": "^5.10.0",
+    "selfsigned": "^5.5.0",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "undici": "^8.9.0",
     "vitest": "^3.2.0"
   }
 }

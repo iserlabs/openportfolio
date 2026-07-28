@@ -13,6 +13,12 @@
 # testing
 /coverage
 
+# playwright (Task A13's E2E harness -- traces/reports from `test:e2e`)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # next.js
 /.next/
 /out/
