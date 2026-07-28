@@ -418,7 +418,7 @@ function Thumbnail({ src }: { src?: string }) {
   if (!src) {
     return <span className="h-12 w-12 shrink-0 rounded bg-zinc-200 dark:bg-zinc-800" aria-hidden="true" />;
   }
-  // eslint-disable-next-line @next/next/no-img-element -- external PDS blob URL, not a local/optimizable asset.
+  // eslint-disable-next-line @next/next/no-img-element -- already-resized /img proxy rendition, not a next/image-optimizable local asset.
   return <img src={src} alt="" className="h-12 w-12 shrink-0 rounded object-cover" />;
 }
 

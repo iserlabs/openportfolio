@@ -8,7 +8,8 @@ import {
 import { AdminShell, requireAdminSession } from "@/components/admin-shell";
 import { rkeyFromUri } from "@/lib/at-uri";
 import { blobRefCid } from "@/lib/blob-ref";
-import { blobUrl, listAllRecords } from "@/lib/pds";
+import { imgSrc } from "@/lib/img-src";
+import { listAllRecords } from "@/lib/pds";
 import { CollectionEditor, type EditableCollection, type PhotographOption } from "./collection-editor";
 
 export const metadata: Metadata = {
@@ -35,7 +36,8 @@ export default async function AdminCollectionsPage() {
         uri: r.uri,
         cid: r.cid,
         title: r.value.title,
-        thumbnailUrl: cid ? blobUrl(cid) : undefined,
+        // Re-encoded proxy rendition (spec §9), not the raw PDS blob -- A9.
+        thumbnailUrl: cid ? imgSrc(cid, "thumb") : undefined,
       };
     });
 

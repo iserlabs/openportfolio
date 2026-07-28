@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { blobRefCid } from "@/lib/blob-ref";
+import { blurDataUrls } from "@/lib/blur";
 import { getPortfolio, homeFeed } from "@/lib/portfolio";
 import { PhotoGrid, type GridItem } from "@/components/photo-grid";
 
@@ -31,19 +32,20 @@ export default async function HomePage() {
   const portfolio = await getPortfolio();
   const feed = homeFeed(portfolio);
 
-  const items: GridItem[] = feed.photographs.flatMap(({ rkey, photograph }) => {
+  const withCid = feed.photographs.flatMap(({ rkey, photograph }) => {
     const cid = blobRefCid(photograph.image.ref);
-    if (!cid) return [];
-    return [
-      {
-        rkey,
-        cid,
-        alt: photograph.alt ?? photograph.title ?? "",
-        width: photograph.aspectRatio.width,
-        height: photograph.aspectRatio.height,
-      },
-    ];
+    return cid ? [{ rkey, photograph, cid }] : [];
   });
+  const blurMap = blurDataUrls(withCid.map((p) => p.cid));
+
+  const items: GridItem[] = withCid.map(({ rkey, photograph, cid }) => ({
+    rkey,
+    cid,
+    alt: photograph.alt ?? photograph.title ?? "",
+    width: photograph.aspectRatio.width,
+    height: photograph.aspectRatio.height,
+    blurDataUrl: blurMap.get(cid) ?? null,
+  }));
 
   return (
     <section>

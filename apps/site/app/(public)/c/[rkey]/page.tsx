@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { blobRefCid } from "@/lib/blob-ref";
-import { imgSrc } from "@/lib/img-src";
+import { blurDataUrls } from "@/lib/blur";
+import { absoluteImgSrc } from "@/lib/img-src";
 import { collectionCover, collectionPhotographs, getPortfolio } from "@/lib/portfolio";
 import { PhotoGrid, type GridItem } from "@/components/photo-grid";
 
@@ -26,7 +27,10 @@ export async function generateMetadata({ params }: CollectionPageParams): Promis
     openGraph: {
       title: collection.record.title,
       description: collection.record.description,
-      images: coverCid && cover ? [{ url: imgSrc(coverCid), width: cover.aspectRatio.width, height: cover.aspectRatio.height }] : undefined,
+      images:
+        coverCid && cover
+          ? [{ url: absoluteImgSrc(coverCid), width: cover.aspectRatio.width, height: cover.aspectRatio.height }]
+          : undefined,
     },
   };
 }
@@ -37,21 +41,22 @@ export default async function CollectionPage({ params }: CollectionPageParams) {
   const collection = portfolio.collections.find((c) => c.rkey === rkey);
   if (!collection) notFound();
 
-  const items: GridItem[] = collectionPhotographs(collection.record, portfolio.photographs).flatMap(
+  const withCid = collectionPhotographs(collection.record, portfolio.photographs).flatMap(
     ({ rkey: photoRkey, photograph }) => {
       const cid = blobRefCid(photograph.image.ref);
-      if (!cid) return [];
-      return [
-        {
-          rkey: photoRkey,
-          cid,
-          alt: photograph.alt ?? photograph.title ?? "",
-          width: photograph.aspectRatio.width,
-          height: photograph.aspectRatio.height,
-        },
-      ];
+      return cid ? [{ rkey: photoRkey, photograph, cid }] : [];
     },
   );
+  const blurMap = blurDataUrls(withCid.map((p) => p.cid));
+
+  const items: GridItem[] = withCid.map(({ rkey: photoRkey, photograph, cid }) => ({
+    rkey: photoRkey,
+    cid,
+    alt: photograph.alt ?? photograph.title ?? "",
+    width: photograph.aspectRatio.width,
+    height: photograph.aspectRatio.height,
+    blurDataUrl: blurMap.get(cid) ?? null,
+  }));
 
   return (
     <section>

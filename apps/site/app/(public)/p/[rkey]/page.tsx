@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Exif } from "@open-portfolio/lexicons";
 import { blobRefCid } from "@/lib/blob-ref";
-import { imgSrc } from "@/lib/img-src";
+import { blurDataUrls } from "@/lib/blur";
+import { absoluteImgSrc, imgSrc } from "@/lib/img-src";
 import { getPortfolio, neighborsInCollection } from "@/lib/portfolio";
 import { LightboxProvider, LightboxTrigger } from "@/components/lightbox";
 
@@ -30,7 +31,9 @@ export async function generateMetadata({ params }: PhotographPageParams): Promis
       title,
       description,
       type: "article",
-      images: cid ? [{ url: imgSrc(cid), width: photo.aspectRatio.width, height: photo.aspectRatio.height }] : undefined,
+      images: cid
+        ? [{ url: absoluteImgSrc(cid), width: photo.aspectRatio.width, height: photo.aspectRatio.height }]
+        : undefined,
     },
   };
 }
@@ -55,7 +58,9 @@ export default async function PhotographPage({ params }: PhotographPageParams) {
   if (!photo) notFound();
 
   const cid = blobRefCid(photo.image.ref);
-  const src = cid ? imgSrc(cid) : null;
+  const src = cid ? imgSrc(cid, "full") : null;
+  const srcSet = cid ? `${imgSrc(cid, "feed")} 1024w, ${imgSrc(cid, "full")} 2048w` : undefined;
+  const blurDataUrl = cid ? (blurDataUrls([cid]).get(cid) ?? null) : null;
   const alt = photo.alt ?? photo.title ?? "";
   const { collection, prevRkey, nextRkey } = neighborsInCollection(portfolio, rkey);
   const rows = exifRows(photo.exif);
@@ -66,11 +71,22 @@ export default async function PhotographPage({ params }: PhotographPageParams) {
         <LightboxProvider items={[{ src, alt }]}>
           <LightboxTrigger index={0}>
             <div
-              style={{ aspectRatio: `${photo.aspectRatio.width}/${photo.aspectRatio.height}` }}
+              style={{
+                aspectRatio: `${photo.aspectRatio.width}/${photo.aspectRatio.height}`,
+                // Blur-up: the tiny placeholder paints instantly as a background;
+                // the real <img> covers it the moment it decodes.
+                ...(blurDataUrl ? { backgroundImage: `url("${blurDataUrl}")`, backgroundSize: "cover" } : {}),
+              }}
               className="overflow-hidden rounded-md bg-zinc-900"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={src} alt={alt} className="h-full w-full object-contain" />
+              <img
+                src={src}
+                srcSet={srcSet}
+                sizes="(min-width: 768px) 720px, 100vw"
+                alt={alt}
+                className="h-full w-full object-contain"
+              />
             </div>
           </LightboxTrigger>
         </LightboxProvider>
