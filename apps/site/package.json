@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "dependencies": {
     "@atproto/api": "^0.20.34",
@@ -24,6 +25,8 @@
     "sharp": "^0.34.5"
   },
   "devDependencies": {
+    "@atproto/dev-env": "^0.5.39",
+    "@atproto/repo": "^0.10.6",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^20",
