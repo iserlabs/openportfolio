@@ -7,7 +7,15 @@ export const dynamic = "force-dynamic"; // see (public)/layout.tsx's comment
 export async function generateMetadata(): Promise<Metadata> {
   const { site } = await getPortfolio();
   const title = site ? `About — ${site.title}` : "About";
-  return { title, description: site?.about };
+  const description = site?.about;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+    },
+  };
 }
 
 /**

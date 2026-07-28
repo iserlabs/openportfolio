@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: CollectionPageParams): Promis
     openGraph: {
       title: collection.record.title,
       description: collection.record.description,
-      images: coverCid ? [{ url: imgSrc(coverCid) }] : undefined,
+      images: coverCid && cover ? [{ url: imgSrc(coverCid), width: cover.aspectRatio.width, height: cover.aspectRatio.height }] : undefined,
     },
   };
 }

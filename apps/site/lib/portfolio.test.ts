@@ -142,6 +142,17 @@ describe("collectionPhotographs", () => {
     const collection = collectionEnv("c1", []).value;
     expect(collectionPhotographs(collection, photographs)).toEqual([]);
   });
+
+  it("resolves to zero photographs when all items are dangling refs, without error", () => {
+    const { photographs } = assemblePortfolio(null, [], []);
+    const danglingRef1 = { uri: `at://${OWNER_DID}/social.opencontent.photograph/deleted1`, cid: "cid-deleted1" };
+    const danglingRef2 = { uri: `at://${OWNER_DID}/social.opencontent.photograph/deleted2`, cid: "cid-deleted2" };
+    const collection = collectionEnv("c1", [danglingRef1, danglingRef2]).value;
+
+    expect(() => collectionPhotographs(collection, photographs)).not.toThrow();
+    const resolved = collectionPhotographs(collection, photographs);
+    expect(resolved).toEqual([]);
+  });
 });
 
 describe("collectionCover", () => {
