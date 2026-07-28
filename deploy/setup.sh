@@ -135,13 +135,13 @@ pds_call() {
   local netrc_file=""
   if [[ "$auth" == "admin" ]]; then
     netrc_file="$(mktemp)"
+    trap 'rm -f "$netrc_file"' RETURN
     chmod 600 "$netrc_file"
     printf 'machine pds.%s login admin password %s\n' "$DOMAIN" "$PDS_ADMIN_PASSWORD" >"$netrc_file"
     curl_args+=(--netrc-file "$netrc_file")
   fi
   local resp status
   resp="$(printf '%s' "$body" | curl "${curl_args[@]}" "https://pds.${DOMAIN}/xrpc/${path}")"
-  [[ -n "$netrc_file" ]] && rm -f "$netrc_file"
   status="${resp##*$'\n'}"
   resp="${resp%$'\n'*}"
   if ((status < 200 || status >= 300)); then
