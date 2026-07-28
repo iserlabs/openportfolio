@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { blobUrl, bustCache, cached, getRecord, listAllRecords, PdsRecordNotFoundError } from "./pds.js";
+import { blobUrl, bustCache, cached, getRecord, listAllRecords, PdsRecordNotFoundError } from "./pds";
 
 const OWNER_DID = "did:plc:kevin";
 const PDS_URL = "https://pds.example.com";

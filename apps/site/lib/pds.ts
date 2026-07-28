@@ -1,4 +1,4 @@
-import { env } from "./env.js";
+import { env } from "./env";
 
 /**
  * Pinned PDS read client + in-process TTL cache.

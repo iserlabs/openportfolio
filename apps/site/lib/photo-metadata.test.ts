@@ -4,7 +4,7 @@ import path from "node:path";
 import { exiftool, type Tags } from "exiftool-vendored";
 import sharp from "sharp";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { extractPrefill, stripGps } from "./photo-metadata.js";
+import { extractPrefill, stripGps } from "./photo-metadata";
 
 // --- fixture helpers ---------------------------------------------------
 //
