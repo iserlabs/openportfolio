@@ -36,10 +36,12 @@ know what you're trusting:
    --pds-host https://pds.yourdomain.com`) — deliberately DID-based since
    the handle migration earlier in setup is best-effort and might not have
    landed yet.
-2. `goat key generate` produces a fresh secp256k1 keypair **entirely
-   offline** — no network call, no PDS involvement. This is the only step
-   that actually creates the key; everything else just registers or saves
-   it.
+2. `goat key generate` produces a fresh P-256 keypair (note: this is
+   goat's default curve, distinct from the PDS's own on-disk rotation key,
+   which uses secp256k1 and is generated separately by `setup.sh` — both
+   curve types are valid did:plc rotation keys) **entirely offline** — no
+   network call, no PDS involvement. This is the only step that actually
+   creates the key; everything else just registers or saves it.
 3. The keypair is written to `./recovery-key-KEEP-OFFLINE.txt` on the VPS
    (`chmod 600`, owner-read-only) — both halves: the public key (safe to
    share) and the private key (**not** safe to share, ever, with anyone).
