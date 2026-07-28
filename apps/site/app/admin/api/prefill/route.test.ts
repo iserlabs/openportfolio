@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../../lib/session", () => ({ requireOwner: vi.fn() }));
 vi.mock("../../../../lib/photo-metadata", () => ({ extractPrefill: vi.fn() }));
@@ -18,6 +18,10 @@ function makeImageFile(): File {
 }
 
 describe("POST /admin/api/prefill", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("rejects a non-owner with 403 before ever touching extractPrefill", async () => {
     vi.mocked(requireOwner).mockRejectedValueOnce(new Error("owner only"));
 
@@ -59,5 +63,17 @@ describe("POST /admin/api/prefill", () => {
     expect(res.status).toBe(422);
     const json = await res.json();
     expect(json).toEqual({ ok: false, error: "this build cannot decode HEIC" });
+  });
+
+  it("rejects files larger than 32 MB with 413 before calling extractPrefill", async () => {
+    vi.mocked(requireOwner).mockResolvedValueOnce("did:plc:owner");
+    const largeFile = new File([new Uint8Array(33 * 1024 * 1024)], "huge.jpg", { type: "image/jpeg" });
+
+    const res = await POST(makeRequest(largeFile));
+
+    expect(res.status).toBe(413);
+    const json = await res.json();
+    expect(json).toEqual({ ok: false, error: "file too large for prefill" });
+    expect(extractPrefill).not.toHaveBeenCalled();
   });
 });

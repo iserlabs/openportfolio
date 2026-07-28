@@ -35,6 +35,12 @@ export async function POST(req: Request): Promise<Response> {
   }
   if (!file) return Response.json({ ok: false, error: "missing file" }, { status: 400 });
 
+  // Reject files larger than 32 MB before reading
+  const MAX_FILE_SIZE = 32 * 1024 * 1024;
+  if (file.size > MAX_FILE_SIZE) {
+    return Response.json({ ok: false, error: "file too large for prefill" }, { status: 413 });
+  }
+
   try {
     const bytes = Buffer.from(await file.arrayBuffer());
     const prefill = await extractPrefill(bytes);
