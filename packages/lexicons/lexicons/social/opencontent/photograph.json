@@ -1,0 +1,42 @@
+{
+  "lexicon": 1,
+  "id": "social.opencontent.photograph",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "One photographic work: a single image with portfolio-grade metadata.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["image", "aspectRatio", "createdAt"],
+        "properties": {
+          "image": { "type": "blob", "accept": ["image/jpeg", "image/png", "image/webp", "image/avif", "image/heic"], "maxSize": 20971520 },
+          "aspectRatio": { "type": "ref", "ref": "#aspectRatio" },
+          "title": { "type": "string", "maxGraphemes": 200, "maxLength": 800 },
+          "description": { "type": "string", "maxGraphemes": 2000, "maxLength": 8000 },
+          "alt": { "type": "string", "maxGraphemes": 2000, "maxLength": 8000 },
+          "exif": { "type": "ref", "ref": "#exif" },
+          "tags": { "type": "array", "maxLength": 20, "items": { "type": "string", "maxGraphemes": 64, "maxLength": 256 } },
+          "license": { "type": "string", "maxGraphemes": 200, "maxLength": 800 },
+          "location": { "type": "string", "maxGraphemes": 200, "maxLength": 800 },
+          "capturedAt": { "type": "string", "format": "datetime" },
+          "createdAt": { "type": "string", "format": "datetime" },
+          "labels": { "type": "union", "refs": ["com.atproto.label.defs#selfLabels"] }
+        }
+      }
+    },
+    "aspectRatio": {
+      "type": "object",
+      "required": ["width", "height"],
+      "properties": { "width": { "type": "integer", "minimum": 1 }, "height": { "type": "integer", "minimum": 1 } }
+    },
+    "exif": {
+      "type": "object",
+      "properties": {
+        "camera": { "type": "string", "maxLength": 256 }, "lens": { "type": "string", "maxLength": 256 },
+        "focalLength": { "type": "string", "maxLength": 64 }, "fNumber": { "type": "string", "maxLength": 64 },
+        "shutterSpeed": { "type": "string", "maxLength": 64 }, "iso": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

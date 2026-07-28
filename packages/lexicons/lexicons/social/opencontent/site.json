@@ -1,0 +1,31 @@
+{
+  "lexicon": 1,
+  "id": "social.opencontent.site",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "The portfolio site's public identity: title, about text, links, collection nav order, and theme. One record per repo (rkey: self).",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["title", "createdAt"],
+        "properties": {
+          "title": { "type": "string", "maxGraphemes": 200, "maxLength": 800 },
+          "about": { "type": "string", "maxGraphemes": 5000, "maxLength": 20000 },
+          "collectionOrder": { "type": "array", "maxLength": 100, "items": { "type": "string", "format": "record-key" } },
+          "links": { "type": "array", "maxLength": 10, "items": { "type": "ref", "ref": "#link" } },
+          "theme": { "type": "string", "maxLength": 64 },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    },
+    "link": {
+      "type": "object",
+      "required": ["label", "uri"],
+      "properties": {
+        "label": { "type": "string", "maxGraphemes": 50, "maxLength": 200 },
+        "uri": { "type": "string", "format": "uri" }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "lexicon": 1,
+  "id": "social.opencontent.collection",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An ordered set of photographs displayed together as a gallery; array order is display order.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["title", "items", "createdAt"],
+        "properties": {
+          "title": { "type": "string", "maxGraphemes": 200, "maxLength": 800 },
+          "description": { "type": "string", "maxGraphemes": 2000, "maxLength": 8000 },
+          "items": { "type": "array", "maxLength": 500, "items": { "type": "ref", "ref": "com.atproto.repo.strongRef" } },
+          "cover": { "type": "ref", "ref": "com.atproto.repo.strongRef" },
+          "createdAt": { "type": "string", "format": "datetime" }
+        }
+      }
+    }
+  }
+}
