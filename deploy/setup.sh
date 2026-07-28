@@ -121,14 +121,27 @@ json_str() {
 # HTTP basic auth; anything else calls the endpoint unauthenticated (that's
 # how createAccount actually works -- it's gated by the invite code, not by
 # admin auth).
+#
+# Neither the body nor the admin password ever appears in argv: `ps`/
+# `/proc/*/cmdline` are readable by other local users on a shared host for
+# as long as the curl process is alive, and both `-d '<json>'` and
+# `-u admin:<password>` put their argument there verbatim. The body goes in
+# over curl's actual stdin (`--data-binary @-`); the admin password goes in
+# via a throwaway 0600 netrc file (`--netrc-file`), created fresh per call
+# and removed immediately after -- never touching argv, never reused.
 pds_call() {
   local path="$1" body="$2" auth="${3:-}"
-  local -a curl_args=(-s -w '\n%{http_code}' -H 'Content-Type: application/json' -d "$body")
+  local -a curl_args=(-s -w '\n%{http_code}' -H 'Content-Type: application/json' --data-binary @-)
+  local netrc_file=""
   if [[ "$auth" == "admin" ]]; then
-    curl_args+=(-u "admin:${PDS_ADMIN_PASSWORD}")
+    netrc_file="$(mktemp)"
+    chmod 600 "$netrc_file"
+    printf 'machine pds.%s login admin password %s\n' "$DOMAIN" "$PDS_ADMIN_PASSWORD" >"$netrc_file"
+    curl_args+=(--netrc-file "$netrc_file")
   fi
   local resp status
-  resp="$(curl "${curl_args[@]}" "https://pds.${DOMAIN}/xrpc/${path}")"
+  resp="$(printf '%s' "$body" | curl "${curl_args[@]}" "https://pds.${DOMAIN}/xrpc/${path}")"
+  [[ -n "$netrc_file" ]] && rm -f "$netrc_file"
   status="${resp##*$'\n'}"
   resp="${resp%$'\n'*}"
   if ((status < 200 || status >= 300)); then
@@ -183,14 +196,28 @@ EOF
   fi
   log "DNS OK: both ${DOMAIN} and pds.${DOMAIN} resolve to ${public_ip}."
 
-  local port
-  for port in 80 443; do
-    if (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null; then
-      exec 3>&- 3<&-
-      fail "Port ${port} is already in use on this host, but Caddy needs it for HTTP(S)/TLS. Stop whatever is bound to it (e.g. \`sudo systemctl stop nginx apache2\`), then re-run."
-    fi
-  done
-  log "Ports 80 and 443 are free."
+  # Ports 80/443 free -- UNLESS they're already held by *this* compose
+  # project's own caddy container from an earlier run. setup.sh dying
+  # partway through (network hiccup mid-phase-2, no `goat` yet so phase 3
+  # is finished manually later, etc.) and being re-run is a documented,
+  # expected path -- caddy is very likely still up and holding both ports
+  # at that point, and that is NOT a conflict, it's the correct resume
+  # state. Only a listener that ISN'T this project's own caddy is a real
+  # problem, so check that first and only fall through to the raw
+  # port-in-use probe (which can't distinguish "ours" from "foreign") when
+  # our caddy isn't the one running.
+  if docker compose ps --status running --services 2>/dev/null | grep -qx "caddy"; then
+    log "Ports 80 and 443 are already held by this project's own caddy (running from a prior ./setup.sh run) -- OK."
+  else
+    local port
+    for port in 80 443; do
+      if (exec 3<>"/dev/tcp/127.0.0.1/${port}") 2>/dev/null; then
+        exec 3>&- 3<&-
+        fail "Port ${port} is already in use on this host, but Caddy needs it for HTTP(S)/TLS. Stop whatever is bound to it (e.g. \`sudo systemctl stop nginx apache2\`), then re-run."
+      fi
+    done
+    log "Ports 80 and 443 are free."
+  fi
 }
 
 # =========================================================================
@@ -273,8 +300,9 @@ EOF
   log "Updating the handle to the bare domain (${DOMAIN})..."
   local update_body update_resp status
   update_body="$(printf '{"handle":"%s"}' "$DOMAIN")"
-  update_resp="$(curl -s -w '\n%{http_code}' -H "Authorization: Bearer ${access_jwt}" -H 'Content-Type: application/json' \
-    -d "$update_body" "https://pds.${DOMAIN}/xrpc/com.atproto.identity.updateHandle")"
+  # Body via stdin, not `-d`/argv -- same reasoning as pds_call above.
+  update_resp="$(printf '%s' "$update_body" | curl -s -w '\n%{http_code}' -H "Authorization: Bearer ${access_jwt}" -H 'Content-Type: application/json' \
+    --data-binary @- "https://pds.${DOMAIN}/xrpc/com.atproto.identity.updateHandle")"
   status="${update_resp##*$'\n'}"
   if ((status < 200 || status >= 300)); then
     warn "Could not update the handle to ${DOMAIN} (HTTP ${status}): ${update_resp%$'\n'*}. Continuing -- your ATProto handle stays ${bootstrap_handle}; the app works the same either way (DID-based auth), and you can retry the update manually later."
@@ -294,8 +322,14 @@ phase_stack_up() {
   # The app container runs as the non-root `node` user (uid 1000, see
   # apps/site/Dockerfile); a fresh bind-mounted host directory would
   # otherwise be owned by whoever ran this script (often root), which that
-  # user can't write nightly backups into.
-  chmod 777 ./backups
+  # user can't write nightly backups into. Chown to that exact uid rather
+  # than chmod 777 -- world-writable isn't needed, only that one uid needs
+  # write access, and every other local user/process on the host shouldn't
+  # get it for free.
+  if ! chown 1000:1000 ./backups 2>/dev/null; then
+    warn "Could not chown ./backups to uid 1000 (not running as root?) -- nightly backups may fail to write. Fix manually: sudo chown 1000:1000 $(pwd)/backups"
+  fi
+  chmod 755 ./backups
 
   log "Building and starting caddy, pds, and app..."
   docker compose up -d --build
@@ -426,6 +460,7 @@ phase_relay_crawl() {
 main() {
   if [[ ! -f "$ENV_FILE" ]]; then
     cp .env.example "$ENV_FILE"
+    chmod 600 "$ENV_FILE" # holds secrets from the moment it exists -- owner-read-only from the very first write, not just once setup.sh starts populating it.
     fail "Created ${ENV_FILE} from .env.example. Edit it (set DOMAIN and OWNER_EMAIL at minimum), then re-run ./setup.sh."
   fi
   set -a

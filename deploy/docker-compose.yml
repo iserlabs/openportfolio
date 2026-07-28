@@ -45,10 +45,26 @@ services:
       - PDS_REPORT_SERVICE_DID=did:plc:ar7c4by46qjdydhdevvrndac
       - PDS_CRAWLERS=https://bsky.network
     volumes: ["pds-data:/pds"]
+    # `wget` (busybox, present in this image -- verified via `docker run
+    # ... which wget`) rather than curl, which the pds image doesn't ship.
+    # `app`'s `depends_on` below waits on this, not just "container
+    # started" -- setup.sh's own health-poll loop is the belt-and-suspenders
+    # version of the same check for the *first* boot (before this
+    # healthcheck has had time to pass), but subsequent `docker compose up`
+    # restarts of `app` alone benefit from Compose enforcing it directly.
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/xrpc/_health"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 30s
 
   app:
     build: { context: .., dockerfile: apps/site/Dockerfile }
     restart: unless-stopped
+    depends_on:
+      pds:
+        condition: service_healthy
     environment:
       - PDS_URL=https://pds.${DOMAIN}
       - PUBLIC_URL=https://${DOMAIN}

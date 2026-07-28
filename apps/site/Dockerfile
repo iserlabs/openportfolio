@@ -56,6 +56,24 @@
 # a node:*-slim base on a newer Debian, or force-rebuild from source after
 # deleting the bundled arm64 prebuild so `binding.js` falls through to a
 # freshly-compiled `build/Release/better_sqlite3.node` instead.
+#
+# exiftool-vendored (the sole authoritative GPS-strip/read path -- see
+# apps/site/lib/photo-metadata.ts's stripGps/extractPrefill) is NOT a
+# native Node addon: it's the real ExifTool, a Perl program, shipped via
+# the `exiftool-vendored.pl` optional dependency and spawned as a
+# subprocess -- so it needs a `perl` binary on PATH *in the runner stage*,
+# not just a compatible Node ABI. Confirmed present by default on
+# node:24-slim (Debian bookworm ships perl-base as a core package) --
+# verified end-to-end in the actual built image: wrote GPSLatitude/
+# GPSLongitude onto a fixture JPEG, ran the exact `-gps:all=
+# -overwrite_original` strip stripGps() uses, confirmed the tags were gone
+# and the decoded pixel bytes were unchanged (the metadata-only-surgery
+# invariant). This is an assumption about the base image, though, not
+# something this Dockerfile enforces: switching `runner` off node:24-slim
+# (e.g. to a distroless or from-scratch base) would silently break GPS
+# stripping -- `exiftool.write()` would reject at runtime with a spawn
+# ENOENT, not a build-time failure -- so re-verify this specifically
+# (not just better-sqlite3/sharp) before ever changing that base image.
 
 # syntax=docker/dockerfile:1.7
 

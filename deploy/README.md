@@ -62,8 +62,15 @@ Four phases, in order:
    proxy), `pds` (the unmodified reference ATProto PDS, pinned to
    `ghcr.io/bluesky-social/pds:0.4`), and `app` (this site); generates your
    session secret and OAuth signing key; creates your owner account on the
-   PDS and migrates its handle to your bare domain; restarts `app` so it
-   picks up everything just written.
+   PDS; restarts `app` so it picks up everything just written. It then
+   tries to migrate your handle from a temporary bootstrap handle to your
+   bare domain — this is **best-effort**: it needs
+   `https://yourdomain.com/.well-known/atproto-did` to already be publicly
+   resolvable (which depends on this same run having gotten that far), and
+   if it isn't yet, setup.sh warns, leaves you on the bootstrap handle, and
+   prints the one command to retry it by hand later. Nothing else depends
+   on this succeeding — the app always authenticates by DID, never by
+   handle.
 3. **Recovery-key ceremony** — if the [`goat`](https://github.com/bluesky-social/goat)
    CLI is installed, generates an **offline** PLC rotation key, registers
    it as your identity's highest-priority key, and saves it to
@@ -79,15 +86,23 @@ Four phases, in order:
 
 `setup.sh` is safe to re-run: every step checks whether its work is already
 done (a secret already in `.env`, an account already created, a recovery
-key file already on disk) and skips it if so — so if preflight fails, or
-you don't have `goat` installed yet, fix the one thing and run it again.
+key file already on disk) and skips it if so — so if preflight fails, you
+don't have `goat` installed yet, or the script simply died partway through
+(network hiccup, closed SSH session, `Ctrl-C`), fix the one thing and run
+it again. Preflight's port check specifically recognizes when 80/443 are
+already held by this project's own `caddy` from an earlier run (the normal
+state if you're resuming) rather than treating that as a conflict — it only
+hard-fails on a port held by something else.
 
 ## 4. First login
 
 1. Visit `https://yourdomain.com/admin/login`.
 2. Sign in with the handle and password `setup.sh` printed at the end of
    the run (also saved as `OWNER_PASSWORD` in `.env`, purely for your own
-   reference — the app itself never reads that value).
+   reference — the app itself never reads that value). Normally the handle
+   is your bare domain itself; if a message earlier in the run said the
+   handle migration was skipped, use the bootstrap handle it printed
+   instead — either way, the password is the same.
 3. You'll land on your own PDS's authorization screen to approve the
    sign-in (this is standard ATProto OAuth — the login prompt is served by
    your PDS, not this app), then back on your admin dashboard.
