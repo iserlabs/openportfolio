@@ -15,6 +15,8 @@ export const env = {
   get PUBLIC_URL() { return req("PUBLIC_URL"); },
   get SESSION_SECRET() { return req("SESSION_SECRET"); },
   get SQLITE_PATH() { return req("SQLITE_PATH"); },
+  /** Single-instance OAuth signing key (ES256 JWK, JSON-serialized) for the confidential `private_key_jwt` client -- see `oauth.ts`. Generated per-install by `setup.sh` (Task A11); never shared across deployments. */
+  get OAUTH_JWK() { return req("OAUTH_JWK"); },
   /** Optional: backup export location. Unset means backups are disabled, not an error. */
   get BACKUP_DIR() { return process.env.BACKUP_DIR; },
 };

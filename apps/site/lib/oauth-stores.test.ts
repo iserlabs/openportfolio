@@ -1,7 +1,33 @@
 import type Database from "better-sqlite3";
+import { exportJWK, generateKeyPair } from "jose";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openDb } from "./db";
-import { makeSessionStore, makeStateStore, pruneOauthStates, resolveHandle } from "./oauth";
+import {
+  getClientMetadata,
+  getOAuthClient,
+  getPublicJwks,
+  makeSessionStore,
+  makeStateStore,
+  pruneOauthStates,
+  resolveHandle,
+} from "./oauth";
+
+// getOAuthClient()/getPublicJwks() need a real ES256 keypair to build the
+// confidential client's `keyset` (see clientMetadata()'s
+// token_endpoint_auth_method: "private_key_jwt"). Generated fresh per test
+// via jose's own generateKeyPair/exportJWK rather than a hardcoded fixture
+// JWK string, so these tests can't bit-rot against a key some future jose
+// version considers invalid, and never risk a real signing key leaking into
+// the repo. `kid` + `alg` are required in the JSON blob itself (not passed
+// separately) -- `@atproto/oauth-client` rejects a private_key_jwt keyset
+// with no `kid`, and this is also exactly the shape `setup.sh` (Task A11)
+// produces, matching Luminance's own OAUTH_JWK_1 generation one-liner in
+// `docs/runbooks/launch-alpha.md`.
+async function ephemeralOauthJwk(): Promise<string> {
+  const { privateKey } = await generateKeyPair("ES256", { extractable: true });
+  const jwk = await exportJWK(privateKey);
+  return JSON.stringify({ ...jwk, alg: "ES256", kid: `test-${crypto.randomUUID()}` });
+}
 
 // @atproto/oauth-client-node's stateStore/sessionStore are async interfaces
 // (so any backing store works, sync or not); better-sqlite3 is synchronous
@@ -155,5 +181,57 @@ describe("oauth stores (SQLite-backed)", () => {
       const fetchJson = vi.fn().mockResolvedValue({});
       await expect(resolveHandle("did:plc:owner", fetchJson)).resolves.toBeUndefined();
     });
+  });
+});
+
+describe("clientMetadata", () => {
+  beforeEach(() => {
+    process.env.PUBLIC_URL = "https://portfolio.example.com";
+  });
+  afterEach(() => {
+    delete process.env.PUBLIC_URL;
+  });
+
+  it("declares a confidential private_key_jwt client with a jwks_uri", () => {
+    const metadata = getClientMetadata();
+    expect(metadata.token_endpoint_auth_method).toBe("private_key_jwt");
+    expect(metadata.token_endpoint_auth_signing_alg).toBe("ES256");
+    expect(metadata.jwks_uri).toBe("https://portfolio.example.com/oauth/jwks.json");
+    expect(metadata.dpop_bound_access_tokens).toBe(true);
+    expect(metadata.client_id).toBe("https://portfolio.example.com/oauth/client-metadata.json");
+    expect(metadata.scope).toBe("atproto");
+  });
+});
+
+describe("confidential client (real ES256 keyset)", () => {
+  // getOAuthClient()/getPublicJwks() both need env.OAUTH_JWK to build the
+  // keyset -- generated fresh per test (see ephemeralOauthJwk above), never
+  // a fixture string.
+  beforeEach(async () => {
+    process.env.PUBLIC_URL = "https://portfolio.example.com";
+    process.env.SQLITE_PATH = ":memory:";
+    process.env.OAUTH_JWK = await ephemeralOauthJwk();
+  });
+  afterEach(() => {
+    delete process.env.PUBLIC_URL;
+    delete process.env.SQLITE_PATH;
+    delete process.env.OAUTH_JWK;
+  });
+
+  it("getOAuthClient() builds a NodeOAuthClient from the configured OAUTH_JWK", async () => {
+    const client = await getOAuthClient();
+    expect(typeof client.authorize).toBe("function");
+    expect(typeof client.callback).toBe("function");
+    expect(typeof client.restore).toBe("function");
+  });
+
+  it("getPublicJwks() exposes only the public half of the configured key", async () => {
+    const jwks = await getPublicJwks();
+    expect(jwks.keys).toHaveLength(1);
+    const [publicJwk] = jwks.keys as Array<Record<string, unknown>>;
+    expect(publicJwk.kty).toBe("EC");
+    expect(publicJwk.crv).toBe("P-256");
+    // The private "d" component must never be serialized to this public route.
+    expect(publicJwk.d).toBeUndefined();
   });
 });

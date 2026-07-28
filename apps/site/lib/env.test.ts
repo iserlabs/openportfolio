@@ -4,7 +4,14 @@ import { afterEach, describe, expect, it } from "vitest";
 // key would otherwise pass silently as long as some *other* test happened to
 // set that particular env var (see e.g. pds.test.ts, which only ever sets
 // PDS_URL/OWNER_DID).
-const REQUIRED_KEYS = ["PDS_URL", "OWNER_DID", "PUBLIC_URL", "SESSION_SECRET", "SQLITE_PATH"] as const;
+const REQUIRED_KEYS = [
+  "PDS_URL",
+  "OWNER_DID",
+  "PUBLIC_URL",
+  "SESSION_SECRET",
+  "SQLITE_PATH",
+  "OAUTH_JWK",
+] as const;
 
 describe("env", () => {
   afterEach(() => {

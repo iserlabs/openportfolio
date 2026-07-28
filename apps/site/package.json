@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@atproto/api": "^0.20.34",
+    "@atproto/jwk-jose": "^0.2.4",
     "@atproto/oauth-client-node": "^0.4.9",
     "@open-portfolio/lexicons": "workspace:*",
     "better-sqlite3": "^13.0.1",
@@ -28,6 +29,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "jose": "^5.10.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.0"
