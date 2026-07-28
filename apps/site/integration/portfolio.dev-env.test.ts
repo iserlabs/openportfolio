@@ -36,6 +36,8 @@ import { collectionPhotographs, getPortfolio } from "../lib/portfolio";
 let network: TestNetworkNoAppView;
 let agent: AtpAgent;
 let ownerDid: string;
+let origPdsUrl: string | undefined;
+let origOwnerDid: string | undefined;
 
 // dev-env's serviceHandleDomains include ".test" -- handles must end in one.
 // "owner.test" is rejected by the dev-env PDS as a reserved handle.
@@ -44,6 +46,10 @@ const WIDTH = 800;
 const HEIGHT = 500;
 
 beforeAll(async () => {
+  // Capture prior env values for restoration in afterAll.
+  origPdsUrl = process.env.PDS_URL;
+  origOwnerDid = process.env.OWNER_DID;
+
   network = await TestNetworkNoAppView.create();
   agent = network.pds.getAgent();
   await agent.createAccount({ handle: OWNER_HANDLE, email: "owner@test.com", password: "password" });
@@ -62,6 +68,18 @@ afterAll(async () => {
   // vitest process never exits.
   await exiftool.end();
   await network?.close();
+
+  // Restore prior env values; @atproto/dev-env's dual sharp versions are harmless.
+  if (origPdsUrl !== undefined) {
+    process.env.PDS_URL = origPdsUrl;
+  } else {
+    delete process.env.PDS_URL;
+  }
+  if (origOwnerDid !== undefined) {
+    process.env.OWNER_DID = origOwnerDid;
+  } else {
+    delete process.env.OWNER_DID;
+  }
 });
 
 // --- fixture: a real geotagged JPEG (sharp-generated base + exiftool GPS
