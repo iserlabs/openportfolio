@@ -1,0 +1,17 @@
+# Caddy terminates TLS for both hostnames (automatic HTTPS via Let's Encrypt,
+# using the ACME HTTP-01 challenge on :80 -- ports 80/443 are exposed on the
+# `caddy` service in docker-compose.yml) and reverse-proxies to the other two
+# services by their compose service name, over the compose network's
+# internal DNS -- `pds`/`app` are never published on the host directly.
+#
+# `{$DOMAIN}` reads the DOMAIN env var Caddy inherits from `.env` via
+# docker-compose's `env_file`-less variable substitution (compose passes the
+# process environment through to the caddy container).
+
+pds.{$DOMAIN} {
+	reverse_proxy pds:3000
+}
+
+{$DOMAIN} {
+	reverse_proxy app:3000
+}

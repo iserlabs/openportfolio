@@ -6,3 +6,7 @@ dist
 !.env.example
 coverage
 .vercel
+
+# deploy/setup.sh runtime artifacts (never committed -- see deploy/README.md)
+deploy/backups/
+recovery-key-KEEP-OFFLINE.txt
