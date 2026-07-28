@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,7 +28,6 @@ describe("runBackup", () => {
   function deps(overrides: BackupDeps = {}): BackupDeps {
     return {
       now: () => new Date("2026-07-28T03:00:00.000Z"),
-      pruneOauthStates: vi.fn().mockReturnValue(0),
       ...overrides,
     };
   }
@@ -45,7 +44,7 @@ describe("runBackup", () => {
 
     const result = await runBackup(deps({ fetchCar, fetchJson, fetchBlob }));
 
-    expect(result).toMatchObject({ skipped: false, ok: true, blobsWritten: 2, blobsSkipped: 0 });
+    expect(result).toMatchObject({ skipped: false, ok: true, blobsWritten: 2, blobsSkipped: 0, blobsFailed: 0 });
     if (result.skipped || !result.ok) throw new Error("expected success");
 
     expect(result.carPath).toBe(path.join(dir, "car", "2026-07-28.car"));
@@ -59,6 +58,12 @@ describe("runBackup", () => {
     expect(fetchCar).toHaveBeenCalledWith(
       `${PDS_URL}/xrpc/com.atproto.sync.getRepo?did=${encodeURIComponent(OWNER_DID)}`,
     );
+
+    // Atomic write: no .tmp litter left behind once a run completes cleanly.
+    const carEntries = await readdir(path.join(dir, "car"));
+    expect(carEntries).toEqual(["2026-07-28.car"]);
+    const blobEntries = (await readdir(path.join(dir, "blobs"))).sort();
+    expect(blobEntries).toEqual(["bafy-one", "bafy-two"]);
   });
 
   it("skips a blob that already exists on disk, without ever calling fetchBlob for it", async () => {
@@ -71,7 +76,7 @@ describe("runBackup", () => {
 
     const result = await runBackup(deps({ fetchCar, fetchJson, fetchBlob }));
 
-    expect(result).toMatchObject({ blobsWritten: 1, blobsSkipped: 1 });
+    expect(result).toMatchObject({ blobsWritten: 1, blobsSkipped: 1, blobsFailed: 0 });
     expect(fetchBlob).toHaveBeenCalledTimes(1);
     expect(fetchBlob).toHaveBeenCalledWith("bafy-new");
     // The pre-existing file's content is left untouched, not overwritten.
@@ -96,7 +101,7 @@ describe("runBackup", () => {
     expect(firstCallUrl).not.toContain("cursor=");
   });
 
-  it("skips (and logs, never writes) a cid containing path-traversal characters", async () => {
+  it("counts (and logs, never writes) a cid containing path-traversal characters as a failed blob, without aborting the run", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const fetchCar = vi.fn(async () => new Response(new Uint8Array([1])));
     const fetchJson = vi.fn(async () => ({ cids: ["../../etc/passwd", "bafy-safe"] }));
@@ -104,10 +109,48 @@ describe("runBackup", () => {
 
     const result = await runBackup(deps({ fetchCar, fetchJson, fetchBlob }));
 
-    expect(result).toMatchObject({ skipped: false, ok: true, blobsWritten: 1 });
+    expect(result).toMatchObject({ skipped: false, ok: true, blobsWritten: 1, blobsFailed: 1 });
     expect(fetchBlob).toHaveBeenCalledTimes(1);
     expect(fetchBlob).toHaveBeenCalledWith("bafy-safe");
-    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("unsafe cid"));
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("blob"), expect.stringContaining("unsafe cid"));
+  });
+
+  it("isolates a single failed blob fetch: logs it, keeps blobsFailed, and still writes the rest", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchCar = vi.fn(async () => new Response(new Uint8Array([1])));
+    const fetchJson = vi.fn(async () => ({ cids: ["bafy-good-1", "bafy-bad", "bafy-good-2"] }));
+    const fetchBlob = vi.fn(async (cid: string) => {
+      if (cid === "bafy-bad") throw new Error("getBlob 502");
+      return Buffer.from([1]);
+    });
+
+    const result = await runBackup(deps({ fetchCar, fetchJson, fetchBlob }));
+
+    expect(result).toMatchObject({ skipped: false, ok: true, blobsWritten: 2, blobsSkipped: 0, blobsFailed: 1 });
+    expect(fetchBlob).toHaveBeenCalledTimes(3); // the bad cid didn't stop the other two from being attempted
+    await expect(readFile(path.join(dir, "blobs", "bafy-good-1"))).resolves.toBeDefined();
+    await expect(readFile(path.join(dir, "blobs", "bafy-good-2"))).resolves.toBeDefined();
+    await expect(readFile(path.join(dir, "blobs", "bafy-bad"))).rejects.toThrow();
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("bafy-bad"), expect.stringContaining("502"));
+  });
+
+  it("writes the CAR atomically: a mid-stream upstream failure leaves no file at the final path and no .tmp litter", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const failingStream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1, 2, 3])); // some bytes land before the failure
+        controller.error(new Error("connection reset mid-transfer"));
+      },
+    });
+    const fetchCar = vi.fn(async () => new Response(failingStream));
+
+    const result = await runBackup(deps({ fetchCar }));
+
+    expect(result).toMatchObject({ skipped: false, ok: false, error: expect.stringContaining("connection reset") });
+    await expect(readFile(path.join(dir, "car", "2026-07-28.car"))).rejects.toThrow();
+    const carEntries = await readdir(path.join(dir, "car"));
+    expect(carEntries).toEqual([]); // the .tmp file was cleaned up, not left behind
+    expect(consoleError).toHaveBeenCalled();
   });
 
   it("returns {skipped:true} and touches no dep at all when BACKUP_DIR is unset", async () => {
@@ -115,41 +158,25 @@ describe("runBackup", () => {
     const fetchCar = vi.fn();
     const fetchJson = vi.fn();
     const fetchBlob = vi.fn();
-    const pruneOauthStates = vi.fn();
 
-    const result = await runBackup({ fetchCar, fetchJson, fetchBlob, pruneOauthStates });
+    const result = await runBackup({ fetchCar, fetchJson, fetchBlob });
 
     expect(result).toEqual({ skipped: true });
     expect(fetchCar).not.toHaveBeenCalled();
     expect(fetchJson).not.toHaveBeenCalled();
     expect(fetchBlob).not.toHaveBeenCalled();
-    expect(pruneOauthStates).not.toHaveBeenCalled();
   });
 
   it("logs and returns a failure result instead of throwing when the upstream CAR fetch fails", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    const pruneOauthStates = vi.fn();
     const fetchCar = vi.fn(async () => {
       throw new Error("pds unreachable");
     });
 
-    const result = await runBackup(deps({ fetchCar, pruneOauthStates }));
+    const result = await runBackup(deps({ fetchCar }));
 
     expect(result).toEqual({ skipped: false, ok: false, error: "pds unreachable" });
     expect(consoleError).toHaveBeenCalled();
-    expect(pruneOauthStates).not.toHaveBeenCalled();
-  });
-
-  it("calls pruneOauthStates(1h) exactly once, only at the end of a successful tick", async () => {
-    const pruneOauthStates = vi.fn().mockReturnValue(3);
-    const fetchCar = vi.fn(async () => new Response(new Uint8Array([1])));
-    const fetchJson = vi.fn(async () => ({ cids: [] }));
-
-    const result = await runBackup(deps({ fetchCar, fetchJson, pruneOauthStates }));
-
-    expect(result).toMatchObject({ skipped: false, ok: true });
-    expect(pruneOauthStates).toHaveBeenCalledTimes(1);
-    expect(pruneOauthStates).toHaveBeenCalledWith(60 * 60 * 1000);
   });
 });
 

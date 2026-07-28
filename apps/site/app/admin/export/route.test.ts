@@ -48,9 +48,18 @@ describe("GET /admin/export", () => {
     expect(res.headers.get("Content-Disposition")).toBe(`attachment; filename="portfolio-${today}.car"`);
   });
 
-  it("502s when the upstream fetch fails, without throwing", async () => {
+  it("502s when the upstream responds with a non-ok status, without throwing", async () => {
     vi.mocked(requireOwner).mockResolvedValueOnce("did:plc:owner");
     vi.mocked(fetchRepoCar).mockResolvedValueOnce(new Response(null, { status: 500 }));
+
+    const res = await GET();
+
+    expect(res.status).toBe(502);
+  });
+
+  it("502s (instead of an unhandled throw) when fetchRepoCar itself rejects", async () => {
+    vi.mocked(requireOwner).mockResolvedValueOnce("did:plc:owner");
+    vi.mocked(fetchRepoCar).mockRejectedValueOnce(new Error("network error / timeout"));
 
     const res = await GET();
 

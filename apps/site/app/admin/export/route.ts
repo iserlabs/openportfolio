@@ -29,7 +29,17 @@ export async function GET(): Promise<Response> {
     return Response.json({ error: "owner only" }, { status: 403 });
   }
 
-  const upstream = await fetchRepoCar();
+  let upstream: Response;
+  try {
+    upstream = await fetchRepoCar();
+  } catch {
+    // A network error (timeout, DNS, connection refused) throws rather than
+    // resolving with a non-ok Response -- caught here so it maps to the same
+    // 502 as an upstream non-ok status below, instead of an unhandled throw
+    // out of this route handler.
+    return Response.json({ error: "export upstream unavailable" }, { status: 502 });
+  }
+
   if (!upstream.ok || !upstream.body) {
     return Response.json({ error: "export upstream unavailable" }, { status: 502 });
   }
