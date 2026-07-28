@@ -354,6 +354,64 @@ describe("saveCollectionCore", () => {
     expect(createRecord).not.toHaveBeenCalled();
   });
 
+  // A7-review carry: saveCollectionCore previously read `items`/`title`/
+  // `description` from formData but never `cover`, even though
+  // buildCollection/the lexicon both support it -- the admin UI's "set
+  // cover" control would have silently done nothing. Wired through the same
+  // way `items` is: an optional JSON-encoded field, a single {uri,cid}
+  // strongRef (not an array), passed straight to buildCollection.
+  it("threads a JSON-encoded cover strongRef through to buildCollection", async () => {
+    const { agent, createRecord } = makeFakeAgent();
+    const cover = JSON.stringify({ uri: `at://${OWNER_DID}/${PHOTOGRAPH_COLLECTION}/p1`, cid: "bafyp1" });
+
+    const result = await saveCollectionCore(OWNER_DID, agent, collectionFormData({ title: "Herons", cover }));
+
+    expect(result.ok).toBe(true);
+    expect(createRecord).toHaveBeenCalledWith({
+      repo: OWNER_DID,
+      collection: COLLECTION_COLLECTION,
+      record: expect.objectContaining({
+        cover: { uri: `at://${OWNER_DID}/${PHOTOGRAPH_COLLECTION}/p1`, cid: "bafyp1" },
+      }),
+    });
+  });
+
+  it("omits cover entirely from the record when the field is absent (unchanged default)", async () => {
+    const { agent, createRecord } = makeFakeAgent();
+
+    const result = await saveCollectionCore(OWNER_DID, agent, collectionFormData({ title: "Herons" }));
+
+    expect(result.ok).toBe(true);
+    const record = createRecord.mock.calls[0]?.[0] as { record: Record<string, unknown> };
+    expect(record.record).not.toHaveProperty("cover");
+  });
+
+  it("rejects malformed cover JSON before touching the agent", async () => {
+    const { agent, createRecord } = makeFakeAgent();
+
+    const result = await saveCollectionCore(
+      OWNER_DID,
+      agent,
+      collectionFormData({ title: "Herons", cover: "not json" }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(createRecord).not.toHaveBeenCalled();
+  });
+
+  it("rejects a cover JSON array (must be a single object, not a list) before touching the agent", async () => {
+    const { agent, createRecord } = makeFakeAgent();
+
+    const result = await saveCollectionCore(
+      OWNER_DID,
+      agent,
+      collectionFormData({ title: "Herons", cover: JSON.stringify([{ uri: "x", cid: "y" }]) }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(createRecord).not.toHaveBeenCalled();
+  });
+
   it("busts the cache on the ok path", async () => {
     const { agent } = makeFakeAgent();
     const bustCache = vi.fn();

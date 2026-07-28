@@ -79,6 +79,17 @@ function parseJsonArrayField<T>(formData: FormData, key: string, fallback: T[]):
   return parsed as T[];
 }
 
+/** Parses a JSON-encoded object field (a single strongRef, not an array), returning `undefined` when the field is absent. Throws on malformed JSON -- callers wrap in try/catch. */
+function parseJsonObjectField<T>(formData: FormData, key: string): T | undefined {
+  const raw = stringField(formData, key);
+  if (!raw) return undefined;
+  const parsed = JSON.parse(raw);
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(`${key} must be a JSON object`);
+  }
+  return parsed as T;
+}
+
 // ---- publishPhotograph -------------------------------------------------------
 
 // Mirrors the lexicon's own accept list (packages/lexicons/src/records.ts'
@@ -262,7 +273,10 @@ const defaultSaveDeps: SaveDeps = { bustCache };
  * used for both edits and reordering `items`) a `social.opencontent.collection`
  * record. `items` arrives as an ordered JSON array of `{uri, cid}` strongRefs;
  * reordering is just resubmitting the same set in a new order through the
- * same `putRecord` call.
+ * same `putRecord` call. `cover` arrives as an optional JSON-encoded
+ * `{uri, cid}` strongRef (single object, not an array) -- omitted entirely
+ * means "no cover set," matching `buildCollection`'s own optional `cover`
+ * input.
  */
 export async function saveCollectionCore(
   ownerDid: string | null,
@@ -279,10 +293,12 @@ export async function saveCollectionCore(
   if (!title) return { ok: false, error: "title is required" };
 
   let items: StrongRef[];
+  let cover: StrongRef | undefined;
   try {
     items = parseJsonArrayField<StrongRef>(formData, "items", []);
-  } catch {
-    return { ok: false, error: "invalid items" };
+    cover = parseJsonObjectField<StrongRef>(formData, "cover");
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "invalid items" };
   }
 
   let record: ReturnType<typeof buildCollection>;
@@ -291,6 +307,7 @@ export async function saveCollectionCore(
       title,
       description: stringField(formData, "description"),
       items,
+      cover,
     });
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "invalid collection" };
