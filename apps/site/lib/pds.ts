@@ -11,9 +11,29 @@ import { env } from "./env.js";
 
 export type FetchJson = (url: string) => Promise<unknown>;
 
+/**
+ * Signals "record does not exist" distinctly from other fetch failures, so
+ * `getRecord` can turn it into `null` instead of throwing. ATProto PDSes are
+ * inconsistent about the wire shape here — some return a plain HTTP 404,
+ * others a 400 with `{ error: "RecordNotFound" }` — `defaultFetchJson` below
+ * detects both and normalizes to this error; a stubbed `fetchJson` in tests
+ * can throw it directly.
+ */
+export class PdsRecordNotFoundError extends Error {
+  constructor(url: string) {
+    super(`pds record not found: ${url}`);
+    this.name = "PdsRecordNotFoundError";
+  }
+}
+
 async function defaultFetchJson(url: string): Promise<unknown> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`pds fetch ${url}: ${res.status}`);
+  if (res.status === 404) throw new PdsRecordNotFoundError(url);
+  if (!res.ok) {
+    const body = (await res.json().catch(() => undefined)) as { error?: string } | undefined;
+    if (body?.error === "RecordNotFound") throw new PdsRecordNotFoundError(url);
+    throw new Error(`pds fetch ${url}: ${res.status}`);
+  }
   return res.json();
 }
 
@@ -36,12 +56,19 @@ interface GetRecordResponse {
 
 const LIST_RECORDS_LIMIT = 100;
 const LIST_RECORDS_HARD_CAP = 5000; // safety valve against a runaway/malicious cursor chain
+const LIST_RECORDS_MAX_PAGES = LIST_RECORDS_HARD_CAP / LIST_RECORDS_LIMIT; // 50 — bounds requests even if records never accumulate to the cap
 
 /**
  * Pages `com.atproto.repo.listRecords` for `collection` in the pinned repo
  * (`env.OWNER_DID`) at `limit=100`, joining pages until the response omits
- * `cursor`. Hard-capped at 5000 records total — stops issuing further
- * requests once reached, rather than trusting an unbounded cursor chain.
+ * `cursor`. Termination is double-bounded, not just record-count-bounded:
+ * (1) an empty `records` page always stops the walk immediately, even if the
+ * response still carries a (stale/buggy) truthy `cursor` — otherwise a PDS
+ * returning `{ records: [], cursor: "..." }` forever would hang this
+ * function forever, since record count alone would never trip the cap; (2)
+ * a hard ceiling of `LIST_RECORDS_MAX_PAGES` (5000/100) requests, so even a
+ * PDS that always returns exactly one record per page alongside a cursor
+ * can't keep this walking past 5000 records' worth of round trips.
  */
 export async function listAllRecords<T>(
   collection: string,
@@ -50,7 +77,7 @@ export async function listAllRecords<T>(
   const out: RecordEnvelope<T>[] = [];
   let cursor: string | undefined;
 
-  do {
+  for (let page = 0; page < LIST_RECORDS_MAX_PAGES; page++) {
     const params = new URLSearchParams({
       repo: env.OWNER_DID,
       collection,
@@ -59,28 +86,43 @@ export async function listAllRecords<T>(
     if (cursor) params.set("cursor", cursor);
 
     const url = `${env.PDS_URL}/xrpc/com.atproto.repo.listRecords?${params.toString()}`;
-    const page = (await fetchJson(url)) as ListRecordsResponse;
+    const response = (await fetchJson(url)) as ListRecordsResponse;
 
-    for (const r of page.records) {
+    if (response.records.length === 0) break; // nothing more to consume, regardless of any cursor still present
+
+    for (const r of response.records) {
       out.push({ uri: r.uri, cid: r.cid, value: r.value as T });
       if (out.length >= LIST_RECORDS_HARD_CAP) return out;
     }
-    cursor = page.cursor;
-  } while (cursor);
+
+    cursor = response.cursor;
+    if (!cursor) break;
+  }
 
   return out;
 }
 
-/** Fetches a single record via `com.atproto.repo.getRecord` from the pinned repo. */
+/**
+ * Fetches a single record via `com.atproto.repo.getRecord` from the pinned
+ * repo. Returns `null` — rather than throwing — when the record does not
+ * exist (e.g. the singleton `social.opencontent.site` record at rkey `self`
+ * before the owner has ever published one); any other fetch failure still
+ * propagates as a thrown error.
+ */
 export async function getRecord<T>(
   collection: string,
   rkey: string,
   fetchJson: FetchJson = defaultFetchJson,
-): Promise<RecordEnvelope<T>> {
+): Promise<RecordEnvelope<T> | null> {
   const params = new URLSearchParams({ repo: env.OWNER_DID, collection, rkey });
   const url = `${env.PDS_URL}/xrpc/com.atproto.repo.getRecord?${params.toString()}`;
-  const record = (await fetchJson(url)) as GetRecordResponse;
-  return { uri: record.uri, cid: record.cid, value: record.value as T };
+  try {
+    const record = (await fetchJson(url)) as GetRecordResponse;
+    return { uri: record.uri, cid: record.cid, value: record.value as T };
+  } catch (err) {
+    if (err instanceof PdsRecordNotFoundError) return null;
+    throw err;
+  }
 }
 
 /** Builds a `com.atproto.sync.getBlob` URL against the pinned PDS_URL, percent-encoding both the DID and the cid. */
@@ -104,7 +146,17 @@ interface CacheEntry {
 
 const cacheStore = new Map<string, CacheEntry>();
 
-/** Returns the cached value for `key` if still within `ttlMs`; otherwise calls `fn`, caches, and returns the fresh value. */
+/**
+ * Returns the cached value for `key` if still within `ttlMs`; otherwise calls
+ * `fn`, caches, and returns the fresh value.
+ *
+ * Known tradeoff: no in-flight de-duplication. Two concurrent misses on the
+ * same `key` (e.g. two simultaneous cold requests for the same page) will
+ * both call `fn` and both write the result, rather than the second awaiting
+ * the first's in-progress call. Acceptable for this site's read volume; if
+ * that ever changes, the fix is a `Map<string, Promise<unknown>>` of
+ * in-flight calls consulted before invoking `fn`.
+ */
 export async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
   const now = Date.now();
   const hit = cacheStore.get(key);

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { blobUrl, bustCache, cached, getRecord, listAllRecords } from "./pds.js";
+import { blobUrl, bustCache, cached, getRecord, listAllRecords, PdsRecordNotFoundError } from "./pds.js";
 
 const OWNER_DID = "did:plc:kevin";
 const PDS_URL = "https://pds.example.com";
@@ -72,6 +72,35 @@ describe("listAllRecords", () => {
     };
     await listAllRecords("http://evil.example.com/steal", fetchJson);
   });
+
+  it("terminates when a page has an empty records array despite a truthy (stale) cursor", async () => {
+    let callCount = 0;
+    const fetchJson = async () => {
+      callCount++;
+      return { records: [], cursor: "stale-cursor-that-would-loop-forever" };
+    };
+
+    const result = await listAllRecords("social.opencontent.photograph", fetchJson);
+
+    expect(result).toEqual([]);
+    expect(callCount).toBe(1); // must not keep following a cursor once a page comes back empty
+  });
+
+  it("bounds total page fetches at HARD_CAP/LIMIT (50) even if records never accumulate to the cap", async () => {
+    // Adversarial/buggy PDS: every page returns 1 record (never empty) plus a
+    // cursor forever. Record-count alone would never trip the 5000 cap, so
+    // termination must also be bounded by iteration count.
+    let callCount = 0;
+    const fetchJson = async () => {
+      callCount++;
+      return { records: [rec(`only-${callCount}`)], cursor: "always-more" };
+    };
+
+    const result = await listAllRecords("social.opencontent.photograph", fetchJson);
+
+    expect(callCount).toBe(50);
+    expect(result).toHaveLength(50);
+  });
 });
 
 describe("getRecord", () => {
@@ -88,6 +117,34 @@ describe("getRecord", () => {
 
     const result = await getRecord("social.opencontent.site", "self", fetchJson);
     expect(result).toEqual({ uri: atUri("self", "social.opencontent.site"), cid: "bafyself", value: { title: "My Site" } });
+  });
+
+  it("returns null when the injected fetchJson signals record-not-found", async () => {
+    const fetchJson = async (url: string) => {
+      throw new PdsRecordNotFoundError(url);
+    };
+    const result = await getRecord("social.opencontent.site", "self", fetchJson);
+    expect(result).toBeNull();
+  });
+
+  it("still throws non-not-found errors rather than swallowing them", async () => {
+    const fetchJson = async () => {
+      throw new Error("pds fetch https://pds.example.com/xrpc/com.atproto.repo.getRecord: 500");
+    };
+    await expect(getRecord("social.opencontent.site", "self", fetchJson)).rejects.toThrow(/500/);
+  });
+
+  it("maps a real 404 HTTP response to null via the production fetch path (no fetchJson override)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify({ error: "RecordNotFound" }), { status: 404 })),
+    );
+    try {
+      const result = await getRecord("social.opencontent.site", "self");
+      expect(result).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
