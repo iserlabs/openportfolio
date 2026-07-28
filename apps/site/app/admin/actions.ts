@@ -126,15 +126,33 @@ function describeTooLarge(err: unknown): string {
 }
 
 /**
- * Core publish flow, agent + owner did already resolved: (unless
- * `keepGps==="true"`) strip GPS -> `extractPrefill` for aspectRatio/exif ->
- * `agent.uploadBlob` -> `buildPhotograph` with the returned blob ref ->
- * `createRecord` -> bust the read cache. User-editable fields
+ * Core publish flow, agent + owner did already resolved: `extractPrefill` on
+ * the original bytes for aspectRatio/exif/hasGps -> (unless
+ * `keepGps==="true"`) strip GPS **only when `extractPrefill` actually found
+ * some** -> `agent.uploadBlob` -> `buildPhotograph` with the returned blob
+ * ref -> `createRecord` -> bust the read cache. User-editable fields
  * (title/description/alt/tags/license/location/capturedAt) come from the
  * form -- the CMS's upload-preview step is expected to have prefilled them
  * from `extractPrefill` already and let the owner edit before submit.
  * `aspectRatio` and `exif` are NOT form fields (nothing to edit there) and
  * are always re-derived from the bytes actually being uploaded.
+ *
+ * GPS-presence gating (review finding): `extractPrefill` runs first and its
+ * exiftool-backed `hasGps` decides whether a strip is even attempted --
+ * `stripGps` unconditionally rejects AVIF (its exiftool write path is
+ * unreliable there, see photo-metadata.ts), so unconditionally calling it
+ * for every non-`keepGps` upload broke AVIF uploads that carried no GPS at
+ * all. The corrected default-path matrix:
+ *   - `hasGps === false` -> publish the original bytes untouched, no strip
+ *     call at all, for any accepted container (including GPS-free AVIF).
+ *   - `hasGps === true`  -> strip as before; if `stripGps` itself throws
+ *     (AVIF-with-GPS, the one combination it refuses), that's surfaced as
+ *     `{ok:false, error}` carrying photo-metadata's own actionable message
+ *     rather than silently publishing geotagged bytes -- the "GPS never
+ *     ships by default" privacy guarantee holds either way: the upload
+ *     either has its GPS stripped, or is rejected, never both-avoided.
+ *   - `keepGps === "true"` -> unchanged: no strip call regardless of
+ *     `hasGps`, prefill is still parsed on the original bytes.
  */
 export async function publishPhotographCore(
   ownerDid: string | null,
@@ -159,14 +177,6 @@ export async function publishPhotographCore(
   // is the interface's wider default `Buffer<ArrayBufferLike>`; without this
   // annotation the reassignment below fails to typecheck.
   let bytes: Buffer = Buffer.from(await file.arrayBuffer());
-  const keepGps = formData.get("keepGps") === "true";
-  if (!keepGps) {
-    try {
-      bytes = await doStripGps(bytes);
-    } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : "could not strip GPS metadata" };
-    }
-  }
 
   let prefill: Prefill;
   try {
@@ -175,6 +185,22 @@ export async function publishPhotographCore(
     return { ok: false, error: err instanceof Error ? err.message : "could not read image metadata" };
   }
 
+  const keepGps = formData.get("keepGps") === "true";
+  if (!keepGps && prefill.hasGps) {
+    try {
+      bytes = await doStripGps(bytes);
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : "could not strip GPS metadata" };
+    }
+  }
+
+  // Orphaned-blob tradeoff: the blob is uploaded (and durably stored on the
+  // PDS) BEFORE buildPhotograph/createRecord validate the rest of the
+  // record below. If either of those later steps fails, this blob has no
+  // record ever referencing it. Left as-is deliberately -- there's no
+  // atomic "upload + reference" primitive to make this a single step, and
+  // the PDS already garbage-collects blobs no record points to, so an
+  // orphan here is inert storage cost, not a correctness or leak problem.
   let uploaded: { ref: unknown; mimeType: string; size: number };
   try {
     const res = await agent.uploadBlob(bytes, { encoding: file.type });
