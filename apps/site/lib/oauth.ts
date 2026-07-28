@@ -47,10 +47,18 @@ import type { FetchJson } from "./pds";
  * browser-driven OAuth E2E test -- every earlier test drives the write path
  * with a plain session-based `agent` (`network.pds.getAgent()`), never a
  * real OAuth-issued, scope-checked session, so this was never exercised
- * before. Luminance's own `apps/web/lib/oauth.ts` still has the narrower
- * `"atproto"`-only scope and, on this evidence, likely has the identical
- * latent bug -- flagged in this task's report, fixing it there is out of
- * scope here.
+ * before.
+ *
+ * Two defects found here were shared with Luminance's own
+ * `apps/web/lib/oauth.ts`: this same narrow `"atproto"`-only scope, and a
+ * second, independent bug in how it constructs its OAuth client -- building
+ * a fresh `NodeOAuthClient` on every call, rather than caching one per
+ * config the way {@link getOAuthClient} below does, hands out a fresh, empty
+ * in-memory DPoP-nonce cache on every request. That was also found by A13's
+ * real-browser E2E: the resulting nonce-discovery retry crashes on a
+ * non-replayable request body under Next's bundled server code, breaking
+ * every post-login PDS write. Both defects were found here and fixed in
+ * Luminance 2026-07-28.
  */
 function clientMetadata() {
   const base = env.PUBLIC_URL;
