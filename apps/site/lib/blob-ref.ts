@@ -1,0 +1,16 @@
+/**
+ * Extracts the blob's CID string from a `social.opencontent.photograph`
+ * record's `image.ref`, as it actually arrives over the wire from
+ * `com.atproto.repo.listRecords`/`getRecord` (plain JSON via `lib/pds.ts`'s
+ * `fetch`-based reader, never a real `@atproto/lexicon` `BlobRef` class
+ * instance): `{ $link: "bafy..." }`. Mirrors Luminance's
+ * `packages/atproto/src/mappers/types.ts`'s `blobCid`. Needed so admin pages
+ * can build a thumbnail `src` via `lib/pds.ts`'s `blobUrl(cid)`.
+ */
+export function blobRefCid(ref: unknown): string | undefined {
+  if (ref && typeof ref === "object" && "$link" in ref) {
+    const link = (ref as { $link: unknown }).$link;
+    if (typeof link === "string" && link.length > 0) return link;
+  }
+  return undefined;
+}
