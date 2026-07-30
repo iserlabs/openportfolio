@@ -19,7 +19,8 @@ pnpm (10.x) + Turborepo monorepo:
   `app/(public)`, admin CMS under `/admin`, ATProto OAuth **confidential
   client** (`lib/oauth.ts`), image proxy (`app/img`), CAR backup/export
   (`lib/backup.ts`, `lib/backup-scheduler.ts`). Unit tests sit next to source
-  (`lib/*.test.ts`).
+  (`lib/*.test.ts`, `app/**/*.test.ts`). See `apps/site/AGENTS.md` for the
+  detailed working notes (route map, server-action pattern, test layers).
 - `packages/lexicons` — `@openportfolio/lexicons`: typed record builders
   (`src/records.ts`) + mirrored JSON schemas (`lexicons/`).
 - `deploy/` — `docker-compose.yml`, `Caddyfile`, and the one-command
@@ -55,5 +56,9 @@ before trusting a change to the publish/OAuth path.
 - The site record's lexicon key is `literal:self` — always write it with
   rkey `"self"` (one record per repo).
 - `fNumber` is a **string** (lexicons have no float type); don't "fix" it.
+- **HEIC upload is unsupported by design** — this build's libvips decodes
+  `.avif` but not plain HEIC (HEVC licensing); `lib/photo-metadata.ts`
+  rejects it honestly with an export-as-JPEG message. Don't "fix" it by
+  widening the accept list (see `docs/runbooks/install.md`'s upload notes).
 - Brand token is fused: `openportfolio` in identifiers, "OpenPortfolio" in
   prose — never "Open Portfolio" or `open-portfolio`.
