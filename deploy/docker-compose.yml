@@ -1,4 +1,4 @@
-name: open-portfolio
+name: openportfolio
 
 # Composition only -- the `pds` service runs the unmodified, version-pinned
 # reference image (spec §9: "Reference PDS unmodified -- composition only,

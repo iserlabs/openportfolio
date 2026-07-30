@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import type { Exif } from "@open-portfolio/lexicons";
+import type { Exif } from "@openportfolio/lexicons";
 import { blobRefCid } from "@/lib/blob-ref";
 import { blurDataUrls } from "@/lib/blur";
 import { absoluteImgSrc, imgSrc } from "@/lib/img-src";

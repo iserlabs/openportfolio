@@ -13,7 +13,7 @@ describe("db", () => {
 
   beforeEach(() => {
     vi.resetModules();
-    tmpPath = path.join(os.tmpdir(), `open-portfolio-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`);
+    tmpPath = path.join(os.tmpdir(), `openportfolio-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite`);
     process.env.SQLITE_PATH = tmpPath;
   });
 

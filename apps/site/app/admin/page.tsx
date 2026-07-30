@@ -7,7 +7,7 @@ import {
   type CollectionRecord,
   type PhotographRecord,
   type SiteRecord,
-} from "@open-portfolio/lexicons";
+} from "@openportfolio/lexicons";
 import { AdminShell, requireAdminSession } from "@/components/admin-shell";
 import { getRecord, listAllRecords } from "@/lib/pds";
 

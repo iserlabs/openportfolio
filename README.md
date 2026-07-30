@@ -1,4 +1,4 @@
-# open-portfolio
+# openportfolio
 
 A self-hostable, ATProto-native portfolio CMS.
 

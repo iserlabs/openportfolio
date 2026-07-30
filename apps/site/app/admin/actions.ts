@@ -10,7 +10,7 @@ import {
   OPENCONTENT_SITE,
   type SiteLink,
   type StrongRef,
-} from "@open-portfolio/lexicons";
+} from "@openportfolio/lexicons";
 import { extractPrefill, stripGps, type Prefill } from "../../lib/photo-metadata";
 import { requireOwner } from "../../lib/session";
 import { restoreAgent } from "../../lib/oauth";

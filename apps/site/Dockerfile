@@ -2,7 +2,7 @@
 # (see deploy/docker-compose.yml: `build: { context: .., dockerfile:
 # apps/site/Dockerfile }`), because pnpm/turbo need the whole workspace
 # (pnpm-lock.yaml, pnpm-workspace.yaml, packages/lexicons) to resolve
-# `@open-portfolio/lexicons` -- same reason Luminance's own
+# `@openportfolio/lexicons` -- same reason Luminance's own
 # apps/ingestor/Dockerfile is built from its repo root.
 #
 # Stages: base -> deps (full install, for building) / prod-deps (prod-only

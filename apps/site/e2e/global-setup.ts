@@ -110,7 +110,7 @@ import { Agent as UndiciAgent, interceptors, setGlobalDispatcher } from "undici"
 // config-keyed client cache; `scope: "atproto transition:generic"`), not
 // special-cased for this harness -- see that file's own doc comments.
 
-export const FAKE_HOST = "open-portfolio-e2e.internal";
+export const FAKE_HOST = "openportfolio-e2e.internal";
 
 // dev-env's serviceHandleDomains include ".test" -- handles must end in one.
 // "owner.test"/"visitor.test"/"guest.test" are all rejected by the dev-env

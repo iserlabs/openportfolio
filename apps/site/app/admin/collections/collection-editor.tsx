@@ -8,7 +8,7 @@ import { deleteRecordAction, saveCollection } from "../actions";
 import { buildCollectionFormData, type StrongRefLike } from "./collection-form-data";
 
 // Mirror OPENCONTENT_COLLECTION/OPENCONTENT_PHOTOGRAPH from
-// @open-portfolio/lexicons as local literals (same convention
+// @openportfolio/lexicons as local literals (same convention
 // app/admin/actions.test.ts already uses) rather than importing the
 // package into this client bundle for two NSID strings.
 const COLLECTION_NSID = "social.opencontent.collection";

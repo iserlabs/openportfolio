@@ -5,7 +5,7 @@ import {
   type CollectionRecord,
   type PhotographRecord,
   type SiteRecord,
-} from "@open-portfolio/lexicons";
+} from "@openportfolio/lexicons";
 import { rkeyFromUri } from "./at-uri";
 import { cached as sharedCached, getRecord as sharedGetRecord, listAllRecords as sharedListAllRecords, type RecordEnvelope } from "./pds";
 

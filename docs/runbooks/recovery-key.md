@@ -105,8 +105,8 @@ sensitive artifact this project produces. Treat it accordingly:
 1. **Move it off the VPS immediately** — don't leave it sitting in
    `deploy/` "for now." `scp` it down, then delete it from the server:
    ```sh
-   scp yourvps:~/open-portfolio/deploy/recovery-key-KEEP-OFFLINE.txt ./
-   ssh yourvps 'shred -u ~/open-portfolio/deploy/recovery-key-KEEP-OFFLINE.txt'
+   scp yourvps:~/openportfolio/deploy/recovery-key-KEEP-OFFLINE.txt ./
+   ssh yourvps 'shred -u ~/openportfolio/deploy/recovery-key-KEEP-OFFLINE.txt'
    ```
    (`rm` alone is fine too if `shred` isn't installed — the main goal is not
    leaving a live copy on the same machine whose compromise this key exists

@@ -4,7 +4,7 @@ import {
   OPENCONTENT_SITE,
   type CollectionRecord,
   type SiteRecord,
-} from "@open-portfolio/lexicons";
+} from "@openportfolio/lexicons";
 import { AdminShell, requireAdminSession } from "@/components/admin-shell";
 import { rkeyFromUri } from "@/lib/at-uri";
 import { mergeCollectionOrder } from "@/lib/collection-order";

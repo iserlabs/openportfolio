@@ -7,7 +7,7 @@ import type { AtpAgent } from "@atproto/api";
 import { readCar } from "@atproto/repo";
 import { exiftool, type Tags } from "exiftool-vendored";
 import sharp from "sharp";
-import { OPENCONTENT_PHOTOGRAPH, type PhotographRecord } from "@open-portfolio/lexicons";
+import { OPENCONTENT_PHOTOGRAPH, type PhotographRecord } from "@openportfolio/lexicons";
 import { publishPhotographCore, saveCollectionCore } from "../app/admin/actions";
 import { rkeyFromUri } from "../lib/at-uri";
 import { blobRefCid } from "../lib/blob-ref";

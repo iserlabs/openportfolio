@@ -1,6 +1,6 @@
 /**
  * Formats a photograph's `exif` sub-record (the same shape as
- * `@open-portfolio/lexicons`' `Exif`) into a single human-readable line for
+ * `@openportfolio/lexicons`' `Exif`) into a single human-readable line for
  * the upload form's read-only prefill summary — `exif` itself is never a
  * form field (it's always re-derived server-side from the uploaded bytes,
  * see `publishPhotographCore`), so this is display-only.

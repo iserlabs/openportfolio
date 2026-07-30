@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CollectionRecord, PhotographRecord, SiteRecord } from "@open-portfolio/lexicons";
+import type { CollectionRecord, PhotographRecord, SiteRecord } from "@openportfolio/lexicons";
 import type { RecordEnvelope } from "./pds";
 import {
   assemblePortfolio,

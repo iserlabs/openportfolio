@@ -4,7 +4,7 @@ import {
   OPENCONTENT_PHOTOGRAPH,
   type CollectionRecord,
   type PhotographRecord,
-} from "@open-portfolio/lexicons";
+} from "@openportfolio/lexicons";
 import { AdminShell, requireAdminSession } from "@/components/admin-shell";
 import { rkeyFromUri } from "@/lib/at-uri";
 import { blobRefCid } from "@/lib/blob-ref";

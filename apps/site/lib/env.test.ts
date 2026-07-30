@@ -44,8 +44,8 @@ describe("env", () => {
 
   it("BACKUP_DIR: returns the value once set", async () => {
     const { env } = await import("./env.js");
-    process.env.BACKUP_DIR = "/var/backups/open-portfolio";
-    expect(env.BACKUP_DIR).toBe("/var/backups/open-portfolio");
+    process.env.BACKUP_DIR = "/var/backups/openportfolio";
+    expect(env.BACKUP_DIR).toBe("/var/backups/openportfolio");
   });
 
   it("OAUTH_PLC_URL: returns undefined without throwing when unset (the production default)", async () => {

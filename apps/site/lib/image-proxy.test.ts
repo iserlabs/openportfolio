@@ -1,6 +1,6 @@
 import type Database from "better-sqlite3";
 import { describe, expect, it } from "vitest";
-import type { PhotographRecord } from "@open-portfolio/lexicons";
+import type { PhotographRecord } from "@openportfolio/lexicons";
 import { openDb } from "./db";
 import { assemblePortfolio, type Portfolio } from "./portfolio";
 import type { RecordEnvelope } from "./pds";

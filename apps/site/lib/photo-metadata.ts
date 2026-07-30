@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { Exif } from "@open-portfolio/lexicons";
+import type { Exif } from "@openportfolio/lexicons";
 import { exiftool, type Tags } from "exiftool-vendored";
 import exifr from "exifr";
 import sharp from "sharp";
@@ -9,7 +9,7 @@ import sharp from "sharp";
 /**
  * Prefill data the upload CMS form is seeded with from a photographer's
  * Lightroom-embedded IPTC/EXIF metadata. `exif` matches
- * `@open-portfolio/lexicons`' `PhotographInput.exif` shape exactly — same
+ * `@openportfolio/lexicons`' `PhotographInput.exif` shape exactly — same
  * field names, same types (`fNumber` a string, `iso` an integer) — so a
  * caller can pass it straight through to `buildPhotograph` without
  * reshaping.
