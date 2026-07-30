@@ -13,10 +13,6 @@ import { requireOwner } from "../../../../lib/session";
  * Not the publish path: this never uploads a blob or writes a record, so
  * there's no GPS-stripping decision to make here — `extractPrefill` only
  * reads metadata, it never mutates the bytes it's given.
- *
- * Relative imports (not the `@/*` tsconfig alias) so this file resolves
- * identically under plain Vitest (no path-alias plugin configured for this
- * app's test run) and under Next's build — see the colocated `route.test.ts`.
  */
 export async function POST(req: Request): Promise<Response> {
   try {

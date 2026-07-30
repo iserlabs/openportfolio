@@ -1,10 +1,6 @@
 import { fetchRepoCar } from "../../../lib/backup";
 import { requireOwner } from "../../../lib/session";
 
-// Relative imports (not the `@/*` tsconfig alias) so this file resolves
-// identically under plain Vitest (no path-alias plugin configured for this
-// app's test run) and under Next's build -- same reasoning as
-// `app/admin/api/prefill/route.ts`'s colocated test.
 export const dynamic = "force-dynamic";
 
 /**
