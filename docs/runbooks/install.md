@@ -52,6 +52,8 @@ let it tell you what's still wrong.
 On the VPS, clone this repo and `cd` into `deploy/`:
 
 ```sh
+git clone git@github.com:iserlabs/openportfolio.git
+cd openportfolio/deploy
 cp .env.example .env
 ```
 

@@ -154,9 +154,9 @@ by signing a real update operation locally and simply not running the
 goat plc update <your-did> --prev <cid-of-current-op> | \
   goat plc sign - --plc-signing-key <the-private-key-from-your-file>
 ```
-(`goat account plc current`/`goat plc data <did>` shows you the current
-op's CID if `--prev` is omitted it uses the latest automatically — omitting
-it is fine for a rehearsal since you're not submitting.) This proves the
+(`goat account plc current` / `goat plc data <did>` shows you the current
+op's CID; if `--prev` is omitted, the latest operation is used automatically
+— fine for a rehearsal, since you're not submitting.) This proves the
 key material in your backup is valid and produces a correctly-signed
 operation, without touching your live identity. Do this once a year or so,
 especially after moving the file between storage locations.

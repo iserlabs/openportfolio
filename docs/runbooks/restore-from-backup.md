@@ -136,7 +136,12 @@ Since `OWNER_DID` and the account secrets are already set, `setup.sh`'s own
 `ensure_owner_account` logic would skip account creation if you ran it —
 but note a fresh `pds` container has **no account at all** yet on its own
 disk, even though `.env` says `OWNER_DID` is already assigned. You still
-need to create that account on this new PDS instance, using the *same* DID:
+need to create that account on this new PDS instance, using the *same* DID.
+
+(The `$PDS_ADMIN_PASSWORD`/`$OWNER_PASSWORD`/`$OWNER_DID`/`$OWNER_EMAIL`
+references here and in step 5 are the values from your restored
+`deploy/.env` — load them into your shell first, e.g.
+`set -a; source deploy/.env; set +a`, or paste the values inline.)
 
 ```sh
 goat pds admin account create \

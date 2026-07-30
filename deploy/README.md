@@ -4,6 +4,14 @@ Takes a fresh Ubuntu VPS with DNS pointed at it to a running, federated,
 single-owner ATProto portfolio. One command (`./setup.sh`) after two DNS
 records and a `docker` install.
 
+This is the happy path. [`../docs/runbooks/install.md`](../docs/runbooks/install.md)
+mirrors it with troubleshooting for every way each step can fail — keep it
+open on a first install. The other runbooks cover day-2 operations:
+[`recovery-key.md`](../docs/runbooks/recovery-key.md),
+[`upgrade-pds.md`](../docs/runbooks/upgrade-pds.md),
+[`restore-from-backup.md`](../docs/runbooks/restore-from-backup.md), and
+[`migrate-away.md`](../docs/runbooks/migrate-away.md).
+
 ## What you need first
 
 - A VPS running Ubuntu (22.04/24.04) with a public IP, and `docker` +
@@ -120,7 +128,9 @@ docker compose up -d --build
 
 Rebuilds the `app` image and restarts it; `caddy` and `pds` are untouched
 (and `pds`'s image stays pinned — it's never rebuilt from source, only
-composed).
+composed). Bumping the `pds` image pin itself is a different, more careful
+operation — `--build` doesn't touch an `image:`-declared service — see
+[`../docs/runbooks/upgrade-pds.md`](../docs/runbooks/upgrade-pds.md).
 
 ## Backups
 
@@ -129,3 +139,9 @@ Nightly CAR + blob backups are written to `./backups` on the host
 long as that variable is set — it is by default. They're your own repo's
 data, exported from your own PDS; nothing here depends on a third party to
 recover it.
+
+Two things the automation does *not* do for you: `./backups` isn't synced
+off this VPS (do that yourself on a schedule — `rsync`/`rclone` to another
+machine or object storage), and `.env` isn't part of the backup (keep your
+own copy). Both matter enormously when you actually need to recover — see
+[`../docs/runbooks/restore-from-backup.md`](../docs/runbooks/restore-from-backup.md).
