@@ -22,4 +22,4 @@ pnpm test
 
 ## Status
 
-Early scaffold. Private until productization.
+Feature-complete v1 — full admin CMS, OAuth confidential client, image pipeline, CAR backup/export, one-command VPS installer, and operator runbooks — pending staging validation and the flagship deployment. Private until productization.
