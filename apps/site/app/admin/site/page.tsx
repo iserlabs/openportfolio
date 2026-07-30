@@ -12,7 +12,7 @@ import { getRecord, listAllRecords } from "@/lib/pds";
 import { SiteForm } from "./site-form";
 
 export const metadata: Metadata = {
-  title: "Site settings — Open Portfolio",
+  title: "Site settings — OpenPortfolio",
 };
 
 // Reads live PDS data on every request -- never prerender at build.

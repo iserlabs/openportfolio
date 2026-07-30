@@ -67,7 +67,7 @@ a line in `install.md`'s "Updating" section.
 
 ## The flagship-first rule
 
-If you operate more than one Open Portfolio instance — your own reference
+If you operate more than one OpenPortfolio instance — your own reference
 deployment plus others, or several unrelated installs you maintain — **never
 bump the pin everywhere at once.** Upgrade the instance you watch most
 closely (logs, backups, your own daily usage) first, and let it run for a

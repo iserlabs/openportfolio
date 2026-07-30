@@ -1,4 +1,4 @@
-# Deploying Open Portfolio
+# Deploying OpenPortfolio
 
 Takes a fresh Ubuntu VPS with DNS pointed at it to a running, federated,
 single-owner ATProto portfolio. One command (`./setup.sh`) after two DNS

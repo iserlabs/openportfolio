@@ -13,7 +13,7 @@ import { listAllRecords } from "@/lib/pds";
 import { CollectionEditor, type EditableCollection, type PhotographOption } from "./collection-editor";
 
 export const metadata: Metadata = {
-  title: "Collections — Open Portfolio",
+  title: "Collections — OpenPortfolio",
 };
 
 // Reads live PDS data on every request -- never prerender at build.

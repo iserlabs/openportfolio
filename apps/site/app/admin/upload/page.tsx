@@ -3,7 +3,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { UploadForm } from "./upload-form";
 
 export const metadata: Metadata = {
-  title: "Upload — Open Portfolio",
+  title: "Upload — OpenPortfolio",
 };
 
 // Owner-only, session-gated -- never prerender at build.

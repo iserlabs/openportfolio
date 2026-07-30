@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Open Portfolio installer -- takes a fresh Ubuntu VPS with DNS pointed at it
+# OpenPortfolio installer -- takes a fresh Ubuntu VPS with DNS pointed at it
 # to a running, federated single-owner portfolio. Idempotent and safe to
 # re-run: every step that writes a secret or creates a resource first checks
 # whether it already exists and skips if so, so an interrupted run (e.g. a
@@ -402,7 +402,7 @@ EOF
 ${key_out}"
 
   {
-    printf 'Open Portfolio offline recovery key -- generated %s\n\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'OpenPortfolio offline recovery key -- generated %s\n\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     printf 'Public key (did:key -- safe to share/publish):\n  %s\n\n' "$pub_key"
     printf 'Private key (multibase -- KEEP THIS OFFLINE):\n  %s\n' "$secret_key"
   } >./recovery-key-KEEP-OFFLINE.txt
@@ -476,7 +476,7 @@ main() {
   cat <<EOF
 
 ==========================================================================
-Done. Open Portfolio should be live at: https://${DOMAIN}
+Done. OpenPortfolio should be live at: https://${DOMAIN}
 
 First login:
   1. Visit https://${DOMAIN}/admin/login

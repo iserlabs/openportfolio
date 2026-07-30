@@ -1,8 +1,8 @@
 # Runbook: Migrate Away
 
 Moving your entire identity — repo records, blobs, and the `did:plc:...`
-itself — off this Open Portfolio instance and onto a different PDS (another
-Open Portfolio instance, or any ATProto-compliant PDS). This is the
+itself — off this OpenPortfolio instance and onto a different PDS (another
+OpenPortfolio instance, or any ATProto-compliant PDS). This is the
 sovereignty guarantee the whole project is built on: nothing here locks you
 in, and this runbook is the proof.
 
@@ -38,7 +38,7 @@ through the DID like everything else always has.
   `OWNER_PASSWORD` value from this instance's `.env`, or whatever you've
   since changed it to) — an OAuth-issued session from logging into the
   admin dashboard is not sufficient for the PLC-signing steps.
-- **A destination PDS already running.** If it's another Open Portfolio
+- **A destination PDS already running.** If it's another OpenPortfolio
   instance, that means you've already run [`install.md`](./install.md)
   there — DNS pointed, `setup.sh` complete, its own `PDS_ADMIN_PASSWORD`
   in hand. If it's some other ATProto PDS, you need equivalent admin access
@@ -101,7 +101,7 @@ already present on disk).
 This is the one step that needs a decision: does the destination PDS give
 you admin access?
 
-**If the destination is your own Open Portfolio instance** (you have its
+**If the destination is your own OpenPortfolio instance** (you have its
 `PDS_ADMIN_PASSWORD` from its `.env`), the cleanest verified path is the
 admin-side create, which mints its own invite code for you:
 

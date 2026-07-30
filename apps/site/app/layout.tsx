@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Open Portfolio",
+  title: "OpenPortfolio",
   description: "A self-hostable, ATProto-native portfolio CMS.",
 };
 

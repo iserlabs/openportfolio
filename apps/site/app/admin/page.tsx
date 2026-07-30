@@ -12,7 +12,7 @@ import { AdminShell, requireAdminSession } from "@/components/admin-shell";
 import { getRecord, listAllRecords } from "@/lib/pds";
 
 export const metadata: Metadata = {
-  title: "Admin dashboard — Open Portfolio",
+  title: "Admin dashboard — OpenPortfolio",
 };
 
 // Reads live PDS data + the owner's session on every request -- never

@@ -4,7 +4,7 @@ import { getOAuthClient } from "@/lib/oauth";
 import { getSession } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "Admin sign-in — Open Portfolio",
+  title: "Admin sign-in — OpenPortfolio",
 };
 
 const ERRORS: Record<string, string> = {

@@ -64,7 +64,7 @@ function clientMetadata() {
   const base = env.PUBLIC_URL;
   return {
     client_id: `${base}/oauth/client-metadata.json`,
-    client_name: "Open Portfolio Admin",
+    client_name: "OpenPortfolio Admin",
     client_uri: base,
     redirect_uris: [`${base}/oauth/callback`] as [string],
     grant_types: ["authorization_code", "refresh_token"] as ["authorization_code", "refresh_token"],
